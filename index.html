@@ -720,6 +720,72 @@ function closeModal(){ modalBg.style.display = "none"; }
 const flightFileInput = document.getElementById('flightFileInput');
 const flightList = document.getElementById('flightList');
 
+// 把 "05APR2026" 轉成 "2026-04-05"
+function formatGdsDate(str){
+  if (!str || str.length < 7) return str || '';
+  const day = str.slice(0, 2);
+  const mon = str.slice(2, 5).toUpperCase();
+  const year = str.slice(5);
+  const map = {
+    JAN:'01', FEB:'02', MAR:'03', APR:'04',
+    MAY:'05', JUN:'06', JUL:'07', AUG:'08',
+    SEP:'09', OCT:'10', NOV:'11', DEC:'12'
+  };
+  const mm = map[mon] || mon;
+  return `${year}-${mm}-${day}`;
+}
+
+// 把 "1650" 轉成 "16:50"
+function formatGdsTime(str){
+  if (!str) return '';
+  const s = String(str);
+  if (s.length < 4) return s;
+  return s.slice(0, 2) + ':' + s.slice(2, 4);
+}
+
+// 針對你這種 { flights: [ { departure:{...}, arrival:{...} } ] } 的格式做轉換
+function normalizeFlightsFromYourJson(raw){
+  if (!raw || !Array.isArray(raw.flights)) {
+    alert("這個 flight.json 裡面沒有 flights 陣列，請確認檔案內容。");
+    console.error("Unexpected flight JSON:", raw);
+    return [];
+  }
+
+  return raw.flights.map(f => {
+    const dep = f.departure || {};
+    const arr = f.arrival || {};
+
+    const date = dep.date || arr.date || '';
+    const fromCity = dep.city || '';
+    const toCity = arr.city || '';
+
+    const departTime = formatGdsTime(dep.time);
+    const arriveTime = formatGdsTime(arr.time);
+
+    const airline = arr.operatingCarrier || '';
+    const flightNumber = dep.flightNo || '';
+
+    const notesParts = [];
+    if (dep.class) notesParts.push(`艙等 ${dep.class}`);
+    if (dep.baggage) notesParts.push(`行李 ${dep.baggage}`);
+    if (arr.seat) notesParts.push(`座位 ${arr.seat}`);
+    if (dep.terminal) notesParts.push(`出發航廈 ${dep.terminal}`);
+    if (arr.terminal) notesParts.push(`抵達航廈 ${arr.terminal}`);
+    const notes = notesParts.join("｜");
+
+    return {
+      date: formatGdsDate(date),
+      from: fromCity,
+      to: toCity,
+      flightNumber,
+      departTime,
+      arriveTime,
+      airline,
+      notes
+    };
+  });
+}
+
 if (flightFileInput){
   flightFileInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
@@ -727,10 +793,11 @@ if (flightFileInput){
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const flights = JSON.parse(e.target.result);
+        const raw = JSON.parse(e.target.result);
+        const flights = normalizeFlightsFromYourJson(raw);
         renderFlights(flights);
       } catch (err) {
-        alert('讀取或解析 JSON 失敗，請確認航班檔案格式正確。');
+        alert('讀取或解析 JSON 失敗，請確認 flight.json 格式正確。');
         console.error(err);
       }
     };
@@ -769,6 +836,7 @@ function renderFlights(flights){
     flightList.appendChild(card);
   });
 }
+
 
 /* =========================
    Stays (local JSON only)
