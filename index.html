@@ -31,7 +31,17 @@
         <div class="hero-left">
           <div class="trip-title">三日東京遊 — 手帳行程</div>
           <div class="trip-sub">可新增 / 刪除 / 拖曳排序 • 自動儲存在瀏覽器</div>
-
+          
+          <div class="location-control">
+            <label for="locationSelect">顯示天氣地點：</label>
+            <select id="locationSelect">
+              <option value="tokyo">東京</option>
+              <option value="osaka">大阪</option>
+              <option value="kyoto">京都</option>
+              <option value="taipei">台北</option>
+            </select>
+          </div>
+          
           <div class="controls">
             <button class="btn primary" id="addQuickBtn">＋ 新增空白活動</button>
             <button class="btn" id="openExport">匯出行程 JSON</button>
@@ -233,11 +243,48 @@ dayButtons.forEach(b=>{
 document.getElementById("todayText").textContent =
   new Date().toLocaleDateString("zh-TW", {year:"numeric", month:"short", day:"numeric"});
 
-// simple temp via open-meteo
-fetch("https://api.open-meteo.com/v1/forecast?latitude=35.68&longitude=139.69&current_weather=true")
-.then(r=>r.json()).then(d=>{
-  if(d && d.current_weather) document.getElementById("tempText").textContent = d.current_weather.temperature + "°C";
-}).catch(()=>{/* ignore */});
+// 多地點天氣設定
+const locationSelect = document.getElementById("locationSelect");
+const tempTextEl = document.getElementById("tempText");
+
+const CITY_COORDS = {
+  tokyo:  { name: "東京",  lat: 35.68,   lon: 139.69 },
+  osaka:  { name: "大阪",  lat: 34.6937, lon: 135.5023 },
+  kyoto:  { name: "京都",  lat: 35.0116, lon: 135.7681 },
+  taipei: { name: "台北",  lat: 25.0478, lon: 121.5319 }
+};
+
+function updateWeather(cityKey){
+  const city = CITY_COORDS[cityKey] || CITY_COORDS.tokyo;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current_weather=true`;
+
+  tempTextEl.textContent = "載入氣溫…";
+
+  fetch(url)
+    .then(r => r.json())
+    .then(d => {
+      if (d && d.current_weather) {
+        const t = d.current_weather.temperature;
+        tempTextEl.textContent = `${city.name} ${t}°C`;
+      } else {
+        tempTextEl.textContent = `${city.name} 氣溫無法取得`;
+      }
+    })
+    .catch(() => {
+      tempTextEl.textContent = `${city.name} 氣溫載入失敗`;
+    });
+}
+
+// 下拉選單切換時更新
+if (locationSelect) {
+  locationSelect.addEventListener("change", (e) => {
+    updateWeather(e.target.value);
+  });
+
+  // 頁面載入時先依預設值載一次
+  updateWeather(locationSelect.value);
+}
+
 
 /* =========================
    Render timeline
