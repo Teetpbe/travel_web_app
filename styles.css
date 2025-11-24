@@ -1,13 +1,15 @@
 :root{
-  --bg:#ffe8d6;
-  --bg2:#fdfdfd;
-  --card:#fffdf8;
-  --accent:#ff7b54;
-  --accent-soft:#ffe2cf;
+  /* 莫蘭迪粉紅 + 粉綠 */
+  --bg:#f2e7e5;        /* dusty pink */
+  --bg2:#e4efea;       /* soft green */
+  --card:#fcf7f4;      /* 柔白米色卡片 */
+  --accent:#c97b84;    /* 低飽和玫瑰色 */
+  --accent-soft:#e4c9c5;
   --muted:#6b6b6b;
-  --shadow: 0 10px 24px rgba(0,0,0,0.06);
+  --shadow: 0 10px 24px rgba(0,0,0,0.05);
   --radius:16px;
 }
+
 
 *,
 *::before,
@@ -22,7 +24,7 @@ html,body{
 body{
   margin:0;
   font-family: -apple-system, "BlinkMacSystemFont","Noto Sans TC","Helvetica Neue", Arial;
-  background: radial-gradient(circle at top, #ffe8d6 0%, #fffaf3 40%, #f4f8ff 100%);
+  background: radial-gradient(circle at top, var(--bg) 0%, #f6f0ec 40%, var(--bg2) 100%);
   color:#1a1a1a;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
@@ -160,6 +162,24 @@ code{
   align-items:center;
   flex-wrap:wrap;
 }
+
+.location-control{
+  margin-top:8px;
+  font-size:12px;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.location-control select{
+  border-radius:999px;
+  border:1px solid rgba(0,0,0,0.08);
+  padding:4px 10px;
+  font-size:12px;
+  background:#fffdfc;
+}
+
 
 .btn{
   background:var(--card);
