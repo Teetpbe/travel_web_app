@@ -222,6 +222,25 @@
     align-items:flex-start;
     touch-action: pan-y;
   }
+  
+  /* 新增：拖曳握把（像 Notion 左邊的點點） */
+  .card-handle{
+    width:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:grab;
+    user-select:none;
+    touch-action:none;
+    font-size:16px;
+    color:rgba(0,0,0,0.35);
+  }
+
+  /* 拖曳中顯示 grabbing（可選） */
+  .card-handle:active{
+    cursor:grabbing;
+  }
+
   .card .time {
     width:72px;
     font-weight:700;
@@ -572,19 +591,21 @@ function renderTimeline(){
     card.className = "card";
     card.dataset.id = ev.id;
     card.innerHTML = `
-      <div class="icon" aria-hidden="true">📍</div>
-      <div class="body">
-        <div class="title">${escapeHtml(ev.title || "（未填）")}</div>
-        <div class="meta">${escapeHtml(ev.time || "")} • ${escapeHtml(ev.detail || "")}</div>
-        <div class="actions">
-          ${ev.map ? `<a href="${ev.map}" target="_blank" class="link-btn">開地圖</a>` : ""}
-          <button class="link-btn" data-action="edit">編輯</button>
-          <button class="link-btn" data-action="delete">刪除</button>
+        <div class="card-handle" aria-hidden="true">⋮⋮</div>
+        <div class="icon" aria-hidden="true">📍</div>
+        <div class="body">
+          <div class="title">${escapeHtml(ev.title || "（未填）")}</div>
+          <div class="meta">${escapeHtml(ev.time || "")} • ${escapeHtml(ev.detail || "")}</div>
+          <div class="actions">
+            ${ev.map ? `<a href="${ev.map}" target="_blank" class="link-btn">開地圖</a>` : ""}
+            <button class="link-btn" data-action="edit">編輯</button>
+            <button class="link-btn" data-action="delete">刪除</button>
+          </div>
         </div>
-      </div>
-    `;
+      `;
     timelineList.appendChild(card);
   });
+
 
   initCardButtons();
   initSortable();
@@ -605,6 +626,7 @@ function initSortable(){
     ghostClass: 'ghost',
     fallbackOnBody: true,
     swapThreshold: 0.65,
+    handle: '.card-handle',   // ⬅️ 只允許拖曳握把
     onEnd: function(){
       const ids = Array.from(timelineList.children).map(c => c.dataset.id);
       const dayArr = schedule.days[currentDay];
