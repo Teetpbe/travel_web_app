@@ -3,59 +3,113 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>三日東京遊 — 手帳風 Timeline（可編輯 / 拖曳 / 匯出）</title>
+<title>三日東京遊 — 旅遊手帳 & 航班住宿小幫手</title>
 
 <!-- SortableJS for drag-and-drop -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <style>
   :root{
-    --bg:#f5efe6; /* 米色手帳背景 */
-    --card:#fffdfa;
-    --accent:#6b5b95;
+    /* 快樂旅遊色系 */
+    --bg:#ffe8d6;           /* 橘粉底 */
+    --bg2:#fdfdfd;
+    --card:#fffdf8;
+    --accent:#ff7b54;       /* 橘色主色 */
+    --accent-soft:#ffe2cf;
     --muted:#6b6b6b;
-    --shadow: 0 6px 18px rgba(11,10,9,0.06);
-    --radius:14px;
+    --shadow: 0 8px 22px rgba(0,0,0,0.06);
+    --radius:16px;
   }
   html,body{height:100%;}
   body{
     margin:0;
     font-family: -apple-system, "BlinkMacSystemFont","Noto Sans TC","Helvetica Neue", Arial;
-    background: linear-gradient(180deg, var(--bg) 0%, #f7f2e8 100%);
+    background: radial-gradient(circle at top, #ffe8d6 0%, #fffaf3 40%, #f4f8ff 100%);
     color:#1a1a1a;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
-    padding-bottom:88px; /* for bottom bar */
+    padding-bottom:88px; /* for bottom space */
   }
 
-  /* Header (hero) */
   .app {
     max-width:900px;
     margin:18px auto;
     padding:18px;
   }
 
+  /* App Header + Tabs */
+  .app-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+    gap:12px;
+  }
+  .app-title{
+    font-size:20px;
+    font-weight:800;
+    color:var(--accent);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .app-title span{
+    font-size:22px;
+  }
+
+  .app-nav{
+    display:flex;
+    gap:6px;
+    background:rgba(255,255,255,0.8);
+    padding:4px;
+    border-radius:999px;
+    box-shadow:var(--shadow);
+  }
+  .nav-tab{
+    border:none;
+    background:transparent;
+    padding:6px 12px;
+    border-radius:999px;
+    font-size:13px;
+    cursor:pointer;
+    color:var(--muted);
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .nav-tab.active{
+    background:linear-gradient(135deg,#ffb198,#ff7b54);
+    color:#fff;
+  }
+
+  .page{
+    display:none;
+  }
+  .page.active{
+    display:block;
+  }
+
+  /* Hero (for timeline page) */
   .hero {
-    background: linear-gradient(90deg, rgba(107,91,149,0.12), rgba(235,224,241,0.08));
+    background: linear-gradient(115deg, rgba(255,255,255,0.96), rgba(173,216,255,0.25));
     border-radius: var(--radius);
     padding:16px;
     display:flex;
     gap:12px;
     align-items:center;
     box-shadow: var(--shadow);
-    border: 1px solid rgba(0,0,0,0.02);
+    border: 1px solid rgba(255,255,255,0.9);
   }
   .hero-left { flex:1; }
   .trip-title { font-size:18px; font-weight:700; color: var(--accent); }
   .trip-sub { font-size:13px; color:var(--muted); margin-top:4px; }
   .today-bubble {
-    min-width:84px;
+    min-width:92px;
     text-align:center;
     background:linear-gradient(180deg, #fff, #fbf8f5);
-    border-radius:10px;
+    border-radius:14px;
     padding:10px;
-    box-shadow: 0 6px 14px rgba(107,91,149,0.06);
-    border:1px solid rgba(0,0,0,0.02);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+    border:1px solid rgba(255,255,255,0.9);
   }
   .today-bubble .date { font-weight:700; font-size:14px; color:var(--accent); }
   .today-bubble .temp { font-size:12px; color:var(--muted); margin-top:4px; }
@@ -70,21 +124,22 @@
   }
   .btn {
     background:var(--card);
-    border:1px solid rgba(0,0,0,0.06);
+    border:1px solid rgba(0,0,0,0.04);
     padding:8px 12px;
-    border-radius:10px;
+    border-radius:999px;
     box-shadow: var(--shadow);
     cursor:pointer;
     font-weight:600;
+    font-size:13px;
   }
   .btn.primary {
-    background: linear-gradient(180deg,#6b5b95,#5a4a7a);
+    background: linear-gradient(135deg,#ffb198,#ff7b54);
     color:white;
     border: none;
   }
   .btn.ghost {
     background:transparent;
-    border:1px dashed rgba(0,0,0,0.06);
+    border:1px dashed rgba(0,0,0,0.08);
   }
 
   /* Editor area */
@@ -97,9 +152,15 @@
   .field {
     background:var(--card);
     padding:10px;
-    border-radius:10px;
+    border-radius:12px;
     border:1px solid rgba(0,0,0,0.03);
     box-shadow: var(--shadow);
+  }
+  .field label{
+    font-weight:700;
+    font-size:13px;
+    display:block;
+    margin-bottom:6px;
   }
   .field input, .field select, .field textarea {
     border-radius:8px;
@@ -108,6 +169,7 @@
     font-size:14px;
     width:220px;
     outline:none;
+    background:#fffdfc;
   }
   .field textarea { width:100%; min-height:54px; resize:vertical; }
 
@@ -121,16 +183,17 @@
   }
   .day-btn {
     padding:8px 12px;
-    border-radius:10px;
-    background:transparent;
+    border-radius:999px;
+    background:rgba(255,255,255,0.8);
     border:1px solid rgba(0,0,0,0.04);
     cursor:pointer;
-    min-width:84px;
+    min-width:110px;
     text-align:center;
+    font-size:13px;
   }
   .day-btn.active {
-    background:linear-gradient(180deg,#fff,#fbf8f5);
-    border: 1px solid rgba(107,91,149,0.08);
+    background:linear-gradient(135deg,#fff,#ffe2cf);
+    border: 1px solid rgba(255,123,84,0.35);
     box-shadow: var(--shadow);
     color:var(--accent);
     font-weight:700;
@@ -149,11 +212,11 @@
   /* Card */
   .card {
     background: var(--card);
-    border-radius: 12px;
+    border-radius: 16px;
     padding:12px;
     margin-bottom:12px;
     box-shadow: var(--shadow);
-    border:1px solid rgba(0,0,0,0.02);
+    border:1px solid rgba(255,255,255,0.9);
     display:flex;
     gap:10px;
     align-items:flex-start;
@@ -170,20 +233,44 @@
   .card .meta { color:var(--muted); font-size:13px; margin-bottom:8px; }
   .card .actions { display:flex; gap:8px; margin-top:6px; flex-wrap:wrap; }
   .icon {
-    width:40px;height:40px;border-radius:10px;
+    width:40px;height:40px;border-radius:14px;
     display:flex;align-items:center;justify-content:center;
     background: linear-gradient(180deg,#fff,#f7f3ef);
-    border:1px solid rgba(0,0,0,0.03);
+    border:1px solid rgba(255,255,255,0.9);
     font-size:18px;
+  }
+
+  .card-title{
+    font-weight:700;
+    font-size:15px;
+    margin-bottom:4px;
+  }
+  .chip{
+    display:inline-block;
+    font-size:11px;
+    padding:3px 8px;
+    border-radius:999px;
+    background:var(--accent-soft);
+    color:var(--accent);
+    margin-right:6px;
+    margin-top:3px;
   }
 
   /* Small text buttons */
   .link-btn {
-    background:transparent;border:none;color:var(--accent);font-weight:700;
-    cursor:pointer;font-size:13px;padding:6px 8px;border-radius:8px;
+    background:rgba(255,255,255,0.9);
+    border:none;
+    color:var(--accent);
+    font-weight:700;
+    cursor:pointer;
+    font-size:12px;
+    padding:6px 8px;
+    border-radius:999px;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
   }
 
-  /* bottom nav spacing */
   .spacer { height:80px; }
 
   /* Modal for details + export */
@@ -198,89 +285,172 @@
     max-width:760px;
     background:white;
     padding:16px;
-    border-radius:12px;
-    box-shadow: 0 20px 60px rgba(10,10,10,0.3);
+    border-radius:16px;
+    box-shadow: 0 20px 60px rgba(10,10,10,0.35);
   }
   .modal .header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-  .modal textarea { width:100%; min-height:260px; margin-top:12px; padding:12px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); font-family: monospace; font-size:13px; }
+  .modal textarea {
+    width:100%;
+    min-height:260px;
+    margin-top:12px;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid rgba(0,0,0,0.06);
+    font-family: monospace;
+    font-size:13px;
+    background:#fffdf8;
+  }
 
-  /* mobile niceties */
+  /* Flights / Stays helper text */
+  .section-intro{
+    margin:10px 0 12px;
+    font-size:13px;
+    color:var(--muted);
+  }
+
   @media (max-width:520px){
+    .app{
+      padding:12px;
+    }
     .field input, .field select { width:150px; }
     .card { padding:10px; }
     .card .time { width:64px; font-size:13px; }
+    .app-header{
+      flex-direction:column;
+      align-items:flex-start;
+    }
   }
 </style>
 </head>
 <body>
   <div class="app">
-    <div class="hero" role="banner">
-      <div class="hero-left">
-        <div class="trip-title">三日東京遊 — 手帳行程</div>
-        <div class="trip-sub">Notion 手帳風 • 可新增 / 刪除 / 拖曳排序 • 會自動儲存</div>
+    <!-- App Header + Tabs -->
+    <header class="app-header">
+      <div class="app-title">
+        <span>🧳</span> 三日東京遊小幫手
+      </div>
+      <nav class="app-nav">
+        <button class="nav-tab active" data-page="timeline">🗒️ 行程</button>
+        <button class="nav-tab" data-page="flights">✈️ 航班</button>
+        <button class="nav-tab" data-page="stays">🏨 住宿</button>
+      </nav>
+    </header>
 
-        <div class="controls">
-          <button class="btn primary" id="addQuickBtn">＋ 新增空白活動</button>
-          <button class="btn" id="openExport">匯出（顯示 JSON）</button>
-          <button class="btn ghost" id="resetBtn">重置範例資料</button>
+    <!-- 行程頁（原本內容） -->
+    <section id="page-timeline" class="page active">
+      <div class="hero" role="banner">
+        <div class="hero-left">
+          <div class="trip-title">三日東京遊 — 手帳行程</div>
+          <div class="trip-sub">可新增 / 刪除 / 拖曳排序 • 自動儲存在瀏覽器</div>
+
+          <div class="controls">
+            <button class="btn primary" id="addQuickBtn">＋ 新增空白活動</button>
+            <button class="btn" id="openExport">匯出行程 JSON</button>
+            <button class="btn ghost" id="resetBtn">重置範例資料</button>
+          </div>
+        </div>
+
+        <div class="today-bubble" aria-hidden="true">
+          <div class="date" id="todayText">--</div>
+          <div class="temp" id="tempText">載入氣溫…</div>
         </div>
       </div>
 
-      <div class="today-bubble" aria-hidden="true">
-        <div class="date" id="todayText">--</div>
-        <div class="temp" id="tempText">載入氣溫…</div>
+      <!-- editor short form -->
+      <div class="editor" aria-label="新增活動區">
+        <div class="field">
+          <label>Day</label>
+          <select id="daySelect">
+            <option value="1">Day 1</option>
+            <option value="2">Day 2</option>
+            <option value="3">Day 3</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>時間</label>
+          <input id="timeInput" placeholder="09:00" />
+        </div>
+
+        <div class="field">
+          <label>標題</label>
+          <input id="titleInput" placeholder="例如：淺草寺" />
+        </div>
+
+        <div class="field" style="flex:1; min-width:180px;">
+          <label>備註 / 地點連結 (可選)</label>
+          <input id="detailInput" placeholder="簡短描述" />
+          <input id="mapInput" placeholder="Google Maps 連結（可選）" style="margin-top:8px;" />
+        </div>
+
+        <div style="display:flex; align-items:flex-end;">
+          <button class="btn primary" id="addBtn">新增 / 更新</button>
+        </div>
       </div>
-    </div>
 
-    <!-- editor short form -->
-    <div class="editor" aria-label="新增活動區">
-      <div class="field">
-        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">Day</label>
-        <select id="daySelect">
-          <option value="1">Day 1</option>
-          <option value="2">Day 2</option>
-          <option value="3">Day 3</option>
-        </select>
+      <!-- days nav -->
+      <div class="days" id="daysNav" aria-label="日程切換">
+        <button class="day-btn active" data-day="1">Day 1 • 東京淺草</button>
+        <button class="day-btn" data-day="2">Day 2 • 原宿 / 涉谷</button>
+        <button class="day-btn" data-day="3">Day 3 • 築地 / 銀座</button>
       </div>
 
-      <div class="field">
-        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">時間</label>
-        <input id="timeInput" placeholder="09:00" />
+      <!-- timeline area -->
+      <div class="timeline">
+        <div class="drop-hint">按住整張卡片即可拖曳重新排序（手機友善）</div>
+        <div id="timelineList" aria-live="polite"></div>
       </div>
 
-      <div class="field">
-        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">標題</label>
-        <input id="titleInput" placeholder="例如：淺草寺" />
+      <div class="spacer"></div>
+    </section>
+
+    <!-- 航班頁 -->
+    <section id="page-flights" class="page">
+      <div class="card">
+        <div class="body">
+          <div class="card-title">✈️ 我的航班</div>
+          <p class="section-intro">
+            從手機或電腦選擇一個 <strong>JSON 檔</strong>，內容只會在本機瀏覽器讀取，
+            <strong>不會上傳到 GitHub 或任何伺服器</strong>。
+          </p>
+          <input type="file" id="flightFileInput" accept="application/json" />
+          <p class="section-intro">
+            建議格式（陣列）：<br>
+            <code>[
+              { "date": "2025-12-20", "from": "TPE", "to": "NRT", "flightNumber": "JL802", "departTime": "10:30", "arriveTime": "14:30", "airline": "JAL", "notes": "靠窗座位" }
+            ]</code>
+          </p>
+        </div>
       </div>
 
-      <div class="field" style="flex:1; min-width:180px;">
-        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">備註 / 地點連結 (可選)</label>
-        <input id="detailInput" placeholder="簡短描述" />
-        <input id="mapInput" placeholder="Google Maps 連結（可選）" style="margin-top:8px;" />
+      <section id="flightList"></section>
+      <div class="spacer"></div>
+    </section>
+
+    <!-- 住宿頁 -->
+    <section id="page-stays" class="page">
+      <div class="card">
+        <div class="body">
+          <div class="card-title">🏨 我的住宿</div>
+          <p class="section-intro">
+            同樣使用本機 JSON 檔管理住宿資訊，只要點選下面的按鈕選檔案即可。
+          </p>
+          <input type="file" id="stayFileInput" accept="application/json" />
+          <p class="section-intro">
+            建議格式（陣列）：<br>
+            <code>[
+              { "dateIn": "2025-12-20", "dateOut": "2025-12-23", "name": "新宿飯店", "address": "東京都新宿區 XX", "phone": "+81-3-1234-5678", "bookingId": "ABC123", "price": 12000, "notes": "含早餐" }
+            ]</code>
+          </p>
+        </div>
       </div>
 
-      <div style="display:flex; align-items:flex-end;">
-        <button class="btn primary" id="addBtn">新增</button>
-      </div>
-    </div>
-
-    <!-- days nav -->
-    <div class="days" id="daysNav" aria-label="日程切換">
-      <button class="day-btn active" data-day="1">Day 1 • 東京淺草</button>
-      <button class="day-btn" data-day="2">Day 2 • 原宿/涉谷</button>
-      <button class="day-btn" data-day="3">Day 3 • 築地/銀座</button>
-    </div>
-
-    <!-- timeline area -->
-    <div class="timeline">
-      <div class="drop-hint">按住整張卡片即可拖曳重新排序（手機友善）</div>
-      <div id="timelineList" aria-live="polite"></div>
-    </div>
-
-    <div class="spacer"></div>
+      <section id="stayList"></section>
+      <div class="spacer"></div>
+    </section>
   </div>
 
-  <!-- Modal: details / export -->
+  <!-- Modal: export -->
   <div class="modal-bg" id="modalBg">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="header">
@@ -298,9 +468,27 @@
 
 <script>
 /* =========================
-   Data & Storage
+   Tabs 切換
+   ========================= */
+const navTabs = document.querySelectorAll('.nav-tab');
+const pages = document.querySelectorAll('.page');
+
+navTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.page;
+    navTabs.forEach(t => t.classList.toggle('active', t === tab));
+    pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + target));
+  });
+});
+
+/* =========================
+   行程 Data & Storage
    ========================= */
 const STORAGE_KEY = "trip_timeline_schedule_v1";
+
+function genId(){
+  return "e_" + Math.random().toString(36).slice(2,9);
+}
 
 // sample three-day Tokyo itinerary
 const SAMPLE = {
@@ -323,10 +511,6 @@ const SAMPLE = {
     ]
   }
 };
-
-function genId(){
-  return "e_" + Math.random().toString(36).slice(2,9);
-}
 
 function saveToStorage(obj){
   try {
@@ -373,16 +557,17 @@ fetch("https://api.open-meteo.com/v1/forecast?latitude=35.68&longitude=139.69&cu
 /* =========================
    Render timeline
    ========================= */
+function escapeHtml(s){ return String(s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"','&quot;'); }
+
 function renderTimeline(){
   const list = schedule.days?.[currentDay] || [];
   timelineList.innerHTML = "";
   if(!list.length){
-    timelineList.innerHTML = `<div style="color:var(--muted); padding:12px; background:var(--card); border-radius:10px;">尚無活動，請用上方表單新增或點「新增空白活動」</div>`;
+    timelineList.innerHTML = `<div style="color:var(--muted); padding:12px; background:var(--card); border-radius:14px;">尚無活動，請用上方表單新增或點「新增空白活動」</div>`;
     return initSortable(); // still init empty container
   }
 
-  // create DOM for each event
-  list.forEach((ev, idx) => {
+  list.forEach((ev) => {
     const card = document.createElement("div");
     card.className = "card";
     card.dataset.id = ev.id;
@@ -398,16 +583,12 @@ function renderTimeline(){
         </div>
       </div>
     `;
-    // allow long-press / touch drag by Sortable (no handle)
     timelineList.appendChild(card);
   });
 
   initCardButtons();
   initSortable();
 }
-
-/* escape to prevent accidental HTML injection */
-function escapeHtml(s){ return String(s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"','&quot;'); }
 
 /* =========================
    Sortable (drag & drop)
@@ -419,20 +600,17 @@ function initSortable(){
     sortableInstance = null;
   }
 
-  // Create Sortable on timelineList; the entire card is draggable (no handle)
   sortableInstance = new Sortable(timelineList, {
     animation: 160,
     ghostClass: 'ghost',
     fallbackOnBody: true,
     swapThreshold: 0.65,
-    onEnd: function(evt){
-      // update order in schedule.days[currentDay]
+    onEnd: function(){
       const ids = Array.from(timelineList.children).map(c => c.dataset.id);
       const dayArr = schedule.days[currentDay];
       const newArr = ids.map(id => dayArr.find(x=>x.id===id)).filter(Boolean);
       schedule.days[currentDay] = newArr;
       saveToStorage(schedule);
-      // re-render to ensure consistent DOM (but avoid infinite loop)
       renderTimeline();
     }
   });
@@ -443,19 +621,17 @@ function initSortable(){
    ========================= */
 function initCardButtons(){
   timelineList.querySelectorAll("[data-action]").forEach(btn=>{
-    btn.onclick = function(e){
+    btn.onclick = function(){
       const action = this.dataset.action;
       const card = this.closest(".card");
       const id = card?.dataset.id;
       if(!id) return;
       if(action === "delete"){
-        // delete item
         const arr = schedule.days[currentDay];
         schedule.days[currentDay] = arr.filter(x=>x.id !== id);
         saveToStorage(schedule);
         renderTimeline();
       } else if(action === "edit"){
-        // fill form with data
         const ev = schedule.days[currentDay].find(x=>x.id===id);
         if(!ev) return;
         document.getElementById("daySelect").value = String(currentDay);
@@ -463,7 +639,6 @@ function initCardButtons(){
         document.getElementById("titleInput").value = ev.title || "";
         document.getElementById("detailInput").value = ev.detail || "";
         document.getElementById("mapInput").value = ev.map || "";
-        // when user clicks 新增, detect existing id to update (we will store it temporarily)
         document.getElementById("addBtn").dataset.editId = id;
         scrollToTop();
       }
@@ -483,7 +658,6 @@ document.getElementById("addBtn").addEventListener("click", function(){
 
   const editId = this.dataset.editId;
   if(editId){
-    // update existing
     const arr = schedule.days[day] || [];
     const idx = arr.findIndex(x=>x.id===editId);
     if(idx>=0){
@@ -495,7 +669,6 @@ document.getElementById("addBtn").addEventListener("click", function(){
     schedule.days[day] = schedule.days[day] || [];
     schedule.days[day].push(ev);
   }
-  // clear form
   document.getElementById("timeInput").value = "";
   document.getElementById("titleInput").value = "";
   document.getElementById("detailInput").value = "";
@@ -512,7 +685,6 @@ document.getElementById("addQuickBtn").addEventListener("click", ()=>{
   renderTimeline();
 });
 
-// reset to sample
 document.getElementById("resetBtn").addEventListener("click", ()=>{
   if(confirm("確定要重置為三日範例資料嗎？目前內容會被覆蓋。")) {
     schedule = JSON.parse(JSON.stringify(SAMPLE));
@@ -527,7 +699,10 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
 const modalBg = document.getElementById("modalBg");
 const exportArea = document.getElementById("exportArea");
 document.getElementById("openExport").addEventListener("click", ()=>{
-  openExportModal();
+  const payload = JSON.stringify(schedule, null, 2);
+  exportArea.value = payload;
+  document.getElementById("modalTitle").textContent = "匯出行程 JSON（可複製）";
+  modalBg.style.display = "flex";
 });
 document.getElementById("copyBtn").addEventListener("click", ()=>{
   const text = exportArea.value;
@@ -537,17 +712,124 @@ document.getElementById("copyBtn").addEventListener("click", ()=>{
 });
 document.getElementById("closeModalBtn").addEventListener("click", closeModal);
 modalBg.addEventListener("click", (e)=>{ if(e.target===modalBg) closeModal(); });
-
-function openExportModal(){
-  const payload = JSON.stringify(schedule, null, 2);
-  exportArea.value = payload;
-  document.getElementById("modalTitle").textContent = "匯出 JSON（可複製）";
-  modalBg.style.display = "flex";
-}
 function closeModal(){ modalBg.style.display = "none"; }
 
 /* =========================
-   Utility / helpers
+   Flights (local JSON only)
+   ========================= */
+const flightFileInput = document.getElementById('flightFileInput');
+const flightList = document.getElementById('flightList');
+
+if (flightFileInput){
+  flightFileInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const flights = JSON.parse(e.target.result);
+        renderFlights(flights);
+      } catch (err) {
+        alert('讀取或解析 JSON 失敗，請確認航班檔案格式正確。');
+        console.error(err);
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  });
+}
+
+function renderFlights(flights){
+  flightList.innerHTML = '';
+  if (!Array.isArray(flights) || flights.length === 0){
+    flightList.innerHTML = '<div class="card"><div class="body">目前沒有航班資料。</div></div>';
+    return;
+  }
+  flights.forEach(f => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="icon">✈️</div>
+      <div class="body">
+        <div class="card-title">
+          ${escapeHtml(f.from || '')} → ${escapeHtml(f.to || '')}
+          ${f.date ? `<span class="chip">${escapeHtml(f.date)}</span>` : ''}
+        </div>
+        <div class="meta">
+          航班：<strong>${escapeHtml(f.flightNumber || '-')}</strong>
+          ${f.airline ? ` • 航空公司：${escapeHtml(f.airline)}` : ''}
+        </div>
+        <div class="meta">
+          起飛：${escapeHtml(f.departTime || '-')}　抵達：${escapeHtml(f.arriveTime || '-')}
+        </div>
+        <div style="font-size:13px; color:var(--muted); margin-top:6px;">
+          備註：${escapeHtml(f.notes || '—')}
+        </div>
+      </div>
+    `;
+    flightList.appendChild(card);
+  });
+}
+
+/* =========================
+   Stays (local JSON only)
+   ========================= */
+const stayFileInput = document.getElementById('stayFileInput');
+const stayList = document.getElementById('stayList');
+
+if (stayFileInput){
+  stayFileInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const stays = JSON.parse(e.target.result);
+        renderStays(stays);
+      } catch (err) {
+        alert('讀取或解析 JSON 失敗，請確認住宿檔案格式正確。');
+        console.error(err);
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  });
+}
+
+function renderStays(stays){
+  stayList.innerHTML = '';
+  if (!Array.isArray(stays) || stays.length === 0){
+    stayList.innerHTML = '<div class="card"><div class="body">目前沒有住宿資料。</div></div>';
+    return;
+  }
+  stays.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="icon">🏨</div>
+      <div class="body">
+        <div class="card-title">
+          ${escapeHtml(s.name || '未命名住宿')}
+        </div>
+        <div class="meta">
+          <span class="chip">入住：${escapeHtml(s.dateIn || '-')}</span>
+          <span class="chip">退房：${escapeHtml(s.dateOut || '-')}</span>
+        </div>
+        <div class="meta">地址：${escapeHtml(s.address || '-')}</div>
+        <div class="meta">電話：${escapeHtml(s.phone || '-')}</div>
+        <div class="meta">訂單編號：<strong>${escapeHtml(s.bookingId || '-')}</strong></div>
+        <div class="meta">
+          價格：${s.price != null ? escapeHtml(String(s.price)) + ' 元' : '-'}
+        </div>
+        <div style="font-size:13px; color:var(--muted); margin-top:6px;">
+          備註：${escapeHtml(s.notes || '—')}
+        </div>
+      </div>
+    `;
+    stayList.appendChild(card);
+  });
+}
+
+/* =========================
+   Utility
    ========================= */
 function scrollToTop(){
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -556,11 +838,7 @@ function scrollToTop(){
 /* initial load */
 setActiveDay(1);
 renderTimeline();
-
-/* ensure schedule saved on change (in case user manipulates multiple windows) */
 window.addEventListener("beforeunload", ()=> saveToStorage(schedule));
-
-/* end of script */
 </script>
 </body>
 </html>
