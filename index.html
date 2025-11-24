@@ -27,33 +27,42 @@
 
     <!-- 行程頁（原本功能） -->
     <section id="page-timeline" class="page active">
-      <div class="hero" role="banner">
-        <div class="hero-left">
-          <div class="trip-title">三日東京遊 — 手帳行程</div>
-          <div class="trip-sub">可新增 / 刪除 / 拖曳排序 • 自動儲存在瀏覽器</div>
+        <div class="hero" role="banner">
+            <div class="hero-left">
+              <div class="trip-title">三日東京遊 — 手帳行程</div>
+              <div class="trip-sub">可新增 / 刪除 / 拖曳排序 • 自動儲存在瀏覽器</div>
           
-          <div class="location-control">
-            <label for="locationSelect">顯示天氣地點：</label>
-            <select id="locationSelect">
-              <option value="tokyo">東京</option>
-              <option value="osaka">大阪</option>
-              <option value="kyoto">京都</option>
-              <option value="taipei">台北</option>
-            </select>
+              <div class="controls">
+                <button class="btn primary" id="addQuickBtn">＋ 新增空白活動</button>
+                <button class="btn" id="openExport">匯出行程 JSON</button>
+              
+                <!-- 新增：匯入行程 JSON -->
+                <label class="btn" for="scheduleFileInput">匯入行程 JSON</label>
+                <input type="file" id="scheduleFileInput" accept="application/json" style="display:none" />
+              
+                <button class="btn ghost" id="resetBtn">重置範例資料</button>
+              </div>              
+            </div>
+          
+            <!-- 右側：地點 + 氣溫貼在一起 -->
+            <div class="hero-right">
+              <div class="location-control">
+                <label for="locationSelect">地點：</label>
+                <select id="locationSelect">
+                  <option value="tokyo">東京</option>
+                  <option value="osaka">大阪</option>
+                  <option value="kyoto">京都</option>
+                  <option value="taipei">台北</option>
+                </select>
+              </div>
+          
+              <div class="today-bubble" aria-hidden="true">
+                <div class="date" id="todayText">--</div>
+                <div class="temp" id="tempText">載入氣溫…</div>
+              </div>
+            </div>
           </div>
           
-          <div class="controls">
-            <button class="btn primary" id="addQuickBtn">＋ 新增空白活動</button>
-            <button class="btn" id="openExport">匯出行程 JSON</button>
-            <button class="btn ghost" id="resetBtn">重置範例資料</button>
-          </div>
-        </div>
-
-        <div class="today-bubble" aria-hidden="true">
-          <div class="date" id="todayText">--</div>
-          <div class="temp" id="tempText">載入氣溫…</div>
-        </div>
-      </div>
 
       <!-- editor short form -->
       <div class="editor" aria-label="新增活動區">
@@ -82,6 +91,27 @@
           <input id="mapInput" placeholder="Google Maps 連結（可選）" />
         </div>
 
+        <div class="field">
+            <label>預計停留時間（可選）</label>
+            <input id="durationInput" placeholder="例如：1.5 小時 / 2 小時" />
+          </div>
+          
+          <div class="field">
+            <label>交通簡述（可選）</label>
+            <textarea id="transportInput" placeholder="例如：上野→（新幹線 60 分）→ 輕井澤&#10;長野站東口巴士 70 分"></textarea>
+          </div>
+          
+          <div class="field">
+            <label>推薦餐點 / 店家（可選）</label>
+            <textarea id="foodInput" placeholder="例如：こばやし蕎麥：冷蕎麥＋天婦羅&#10;戶隱蕎麥：戶隱盛り"></textarea>
+          </div>
+          
+          <div class="field">
+            <label>伴手禮 / 小提醒（可選）</label>
+            <textarea id="giftInput" placeholder="例如：果醬、和菓子、おやき&#10;提醒：樓梯陡、記得帶外套"></textarea>
+          </div>
+          
+
         <div class="field field--button">
           <button class="btn primary btn-full" id="addBtn">新增 / 更新</button>
         </div>
@@ -89,10 +119,9 @@
 
       <!-- days nav -->
       <div class="days" id="daysNav" aria-label="日程切換">
-        <button class="day-btn active" data-day="1">Day 1 • 東京淺草</button>
-        <button class="day-btn" data-day="2">Day 2 • 原宿 / 涉谷</button>
-        <button class="day-btn" data-day="3">Day 3 • 築地 / 銀座</button>
+        <!-- 這裡的按鈕改由 JS 動態產生 -->
       </div>
+      
 
       <!-- timeline area -->
       <div class="timeline">
@@ -227,17 +256,59 @@ let schedule = loadFromStorage() || SAMPLE;
 let currentDay = 1;
 
 const timelineList = document.getElementById("timelineList");
+const daySelect = document.getElementById("daySelect");
 const daysNav = document.getElementById("daysNav");
-const dayButtons = daysNav.querySelectorAll(".day-btn");
 
-function setActiveDay(day){
+function buildDayNav() {
+  daysNav.innerHTML = "";
+  daySelect.innerHTML = "";
+
+  const dayKeys = Object.keys(schedule.days || {}).sort((a, b) => Number(a) - Number(b));
+
+  if (!dayKeys.length) {
+    // 如果完全沒有 day，就預設建立 Day 1
+    schedule.days = { 1: [] };
+  }
+
+  const finalKeys = Object.keys(schedule.days).sort((a, b) => Number(a) - Number(b));
+
+  finalKeys.forEach((key, index) => {
+    // 1) 建 day tab 按鈕
+    const btn = document.createElement("button");
+    btn.className = "day-btn";
+    btn.dataset.day = key;
+
+    // 想簡單一點就只顯示 Day X，
+    // 也可以試著讀第一個 event 的標題當副標
+    const firstEvent = (schedule.days[key] || [])[0];
+    const sub = firstEvent && firstEvent.title ? ` • ${firstEvent.title.slice(0, 10)}` : "";
+    btn.textContent = `Day ${key}${sub}`;
+
+    btn.addEventListener("click", () => setActiveDay(Number(key)));
+    daysNav.appendChild(btn);
+
+    // 2) 建 editor 裡的 Day 下拉選單
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = `Day ${key}`;
+    daySelect.appendChild(opt);
+  });
+}
+
+
+function setActiveDay(day) {
   currentDay = day;
-  dayButtons.forEach(b=>b.classList.toggle("active", b.dataset.day==String(day)));
+  const buttons = daysNav.querySelectorAll(".day-btn");
+  buttons.forEach(b => {
+    b.classList.toggle("active", b.dataset.day == String(day));
+  });
+  // 同步一下 editor 的 daySelect
+  if (daySelect) {
+    daySelect.value = String(day);
+  }
   renderTimeline();
 }
-dayButtons.forEach(b=>{
-  b.addEventListener("click", ()=> setActiveDay(Number(b.dataset.day)));
-});
+
 
 // render hero date
 document.getElementById("todayText").textContent =
@@ -285,6 +356,56 @@ if (locationSelect) {
   updateWeather(locationSelect.value);
 }
 
+// 匯入行程 JSON（只在本機讀檔，不上傳）
+const scheduleFileInput = document.getElementById("scheduleFileInput");
+if (scheduleFileInput) {
+  scheduleFileInput.addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const raw = JSON.parse(e.target.result);
+
+        // 允許兩種格式：
+        // 1) { "1":[...], "2":[...], ... }  你現在這種
+        // 2) { meta:{...}, days:{ "1":[...], ... } }
+        let newSchedule;
+        if (raw.days) {
+          newSchedule = {
+            meta: raw.meta || {
+              title: "匯入行程",
+              created: new Date().toISOString()
+            },
+            days: raw.days
+          };
+        } else {
+          newSchedule = {
+            meta: {
+              title: "匯入行程",
+              created: new Date().toISOString()
+            },
+            days: raw
+          };
+        }
+        schedule = newSchedule;
+        saveToStorage(schedule);
+        buildDayNav();
+        setActiveDay(1);
+        alert("已匯入行程 JSON！");
+
+        // 清空 input，避免同一檔案再次選取時不觸發 change
+        scheduleFileInput.value = "";
+      } catch (err) {
+        console.error("匯入行程 JSON 失敗", err);
+        alert("讀取或解析行程 JSON 失敗，請確認檔案格式。");
+      }
+    };
+    reader.readAsText(file, "utf-8");
+  });
+}
+
 
 /* =========================
    Render timeline
@@ -303,24 +424,75 @@ function renderTimeline(){
     const card = document.createElement("div");
     card.className = "card";
     card.dataset.id = ev.id;
+
+    // 做一個摘要：如果有 duration 就秀在 meta，沒有就用 detail 前面幾字
+    const brief = ev.duration
+        ? `預計停留：${ev.duration}`
+        : (ev.detail || "").slice(0, 40);
+
+    const hasDetails =
+        (ev.detail && ev.detail.trim()) ||
+        (ev.transport && ev.transport.trim()) ||
+        (ev.food && ev.food.trim()) ||
+        (ev.gift && ev.gift.trim());
+
     card.innerHTML = `
-      <div class="card-handle" aria-hidden="true"></div>
-      <div class="icon" aria-hidden="true">📍</div>
-      <div class="body">
+        <div class="card-handle" aria-hidden="true"></div>
+        <div class="icon" aria-hidden="true">📍</div>
+        <div class="body">
         <div class="title-row">
-          <div class="title">${escapeHtml(ev.title || "（未填）")}</div>
-          ${ev.time ? `<div class="time-pill">${escapeHtml(ev.time)}</div>` : ""}
+            <div class="title">${escapeHtml(ev.title || "（未填）")}</div>
+            ${ev.time ? `<div class="time-pill">${escapeHtml(ev.time)}</div>` : ""}
         </div>
-        <div class="meta">${escapeHtml(ev.detail || "")}</div>
+        <div class="meta">${escapeHtml(brief || "")}</div>
         <div class="actions">
-          ${ev.map ? `<a href="${ev.map}" target="_blank" class="link-btn">開地圖</a>` : ""}
-          <button class="link-btn" data-action="edit">編輯</button>
-          <button class="link-btn danger" data-action="delete">刪除</button>
+            ${ev.map ? `<a href="${ev.map}" target="_blank" class="link-btn">開地圖</a>` : ""}
+            ${
+            hasDetails
+                ? `<button class="link-btn" data-action="toggle">展開詳情</button>`
+                : ""
+            }
+            <button class="link-btn" data-action="edit">編輯</button>
+            <button class="link-btn danger" data-action="delete">刪除</button>
         </div>
-      </div>
-    `;
-    timelineList.appendChild(card);
-  });
+
+        ${
+            hasDetails
+            ? `
+            <div class="card-details">
+            ${
+                ev.duration
+                ? `<div class="detail-row"><span class="detail-label">停留</span><span>${escapeHtml(ev.duration)}</span></div>`
+                : ""
+            }
+            ${
+                ev.transport
+                ? `<div class="detail-row"><span class="detail-label">交通</span><span>${escapeHtml(ev.transport)}</span></div>`
+                : ""
+            }
+            ${
+                ev.food
+                ? `<div class="detail-row"><span class="detail-label">飲食</span><span>${escapeHtml(ev.food)}</span></div>`
+                : ""
+            }
+            ${
+                ev.gift
+                ? `<div class="detail-row"><span class="detail-label">伴手禮 / 提醒</span><span>${escapeHtml(ev.gift)}</span></div>`
+                : ""
+            }
+            ${
+                ev.detail
+                ? `<div class="detail-row"><span class="detail-label">其他</span><span>${escapeHtml(ev.detail)}</span></div>`
+                : ""
+            }
+            </div>
+            `
+            : ""
+        }
+        </div>
+        `;
+        timelineList.appendChild(card);
+    });
 
   initCardButtons();
   initSortable();
@@ -356,18 +528,20 @@ function initSortable(){
 /* =========================
    Card action buttons (edit/delete)
    ========================= */
-function initCardButtons(){
+   function initCardButtons(){
   timelineList.querySelectorAll("[data-action]").forEach(btn=>{
     btn.onclick = function(){
       const action = this.dataset.action;
       const card = this.closest(".card");
       const id = card?.dataset.id;
       if(!id) return;
+
       if(action === "delete"){
         const arr = schedule.days[currentDay];
         schedule.days[currentDay] = arr.filter(x=>x.id !== id);
         saveToStorage(schedule);
         renderTimeline();
+
       } else if(action === "edit"){
         const ev = schedule.days[currentDay].find(x=>x.id===id);
         if(!ev) return;
@@ -376,43 +550,75 @@ function initCardButtons(){
         document.getElementById("titleInput").value = ev.title || "";
         document.getElementById("detailInput").value = ev.detail || "";
         document.getElementById("mapInput").value = ev.map || "";
+        document.getElementById("durationInput").value  = ev.duration  || "";
+        document.getElementById("transportInput").value = ev.transport || "";
+        document.getElementById("foodInput").value      = ev.food      || "";
+        document.getElementById("giftInput").value      = ev.gift      || "";
         document.getElementById("addBtn").dataset.editId = id;
         scrollToTop();
+
+      } else if (action === "toggle"){
+        const detailEl = card.querySelector(".card-details");
+        if(!detailEl) return;
+        detailEl.classList.toggle("open");
       }
     };
   });
 }
 
+
 /* =========================
    Add / Quick add / Reset
    ========================= */
-document.getElementById("addBtn").addEventListener("click", function(){
+   document.getElementById("addBtn").addEventListener("click", function(){
   const day = Number(document.getElementById("daySelect").value);
   const time = document.getElementById("timeInput").value.trim();
   const title = document.getElementById("titleInput").value.trim() || "（無標題）";
   const detail = document.getElementById("detailInput").value.trim();
   const map = document.getElementById("mapInput").value.trim();
 
+  // ✅ 新增這四個
+  const duration  = document.getElementById("durationInput").value.trim();
+  const transport = document.getElementById("transportInput").value.trim();
+  const food      = document.getElementById("foodInput").value.trim();
+  const gift      = document.getElementById("giftInput").value.trim();
+
   const editId = this.dataset.editId;
   if(editId){
     const arr = schedule.days[day] || [];
     const idx = arr.findIndex(x=>x.id===editId);
     if(idx>=0){
-      arr[idx] = { ...arr[idx], time, title, detail, map };
+      arr[idx] = {
+        ...arr[idx],
+        time, title, detail, map,
+        duration, transport, food, gift
+      };
     }
     delete this.dataset.editId;
   } else {
-    const ev = { id: genId(), time, title, detail, map };
+    const ev = {
+      id: genId(),
+      time, title, detail, map,
+      duration, transport, food, gift
+    };
     schedule.days[day] = schedule.days[day] || [];
     schedule.days[day].push(ev);
   }
+
+  // 清空表單
   document.getElementById("timeInput").value = "";
   document.getElementById("titleInput").value = "";
   document.getElementById("detailInput").value = "";
   document.getElementById("mapInput").value = "";
+  document.getElementById("durationInput").value = "";
+  document.getElementById("transportInput").value = "";
+  document.getElementById("foodInput").value = "";
+  document.getElementById("giftInput").value = "";
+
   saveToStorage(schedule);
   setActiveDay(day);
 });
+
 
 document.getElementById("addQuickBtn").addEventListener("click", ()=>{
   const ev = { id: genId(), time:"09:00", title:"新活動", detail:"可編輯內容", map:"" };
@@ -426,6 +632,7 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
   if(confirm("確定要重置為三日範例資料嗎？目前內容會被覆蓋。")) {
     schedule = JSON.parse(JSON.stringify(SAMPLE));
     saveToStorage(schedule);
+    buildDayNav();
     setActiveDay(1);
   }
 });
@@ -643,8 +850,10 @@ function scrollToTop(){
 }
 
 /* initial load */
+buildDayNav();
 setActiveDay(1);
 renderTimeline();
+
 window.addEventListener("beforeunload", ()=> saveToStorage(schedule));
 </script>
 </body>
