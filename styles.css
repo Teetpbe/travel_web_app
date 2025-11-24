@@ -1,22 +1,15 @@
 :root{
-    /* 你的調色盤 */
-    --green-main: #86A788;
-    --cream:      #FFFDEC;
-    --pink-light: #FFE2E2;
-    --pink-deep:  #FFCFCF;
-  
-    /* 給整個 app 用的語意色 */
-    --bg-top:    var(--green-main);
-    --bg-mid:    var(--cream);
-    --bg-bottom: var(--pink-light);
-  
-    --card:        var(--cream);
-    --accent:      var(--green-main);   /* 重要文字、按鈕 */
-    --accent-soft: var(--pink-light);
-    --muted:       #6B6B6B;
-    --shadow:      0 10px 24px rgba(0,0,0,0.05);
-    --radius:      16px;
+    --bg: #121212;             /* 黑色主背景 */
+    --card: #1E1E1E;           /* 卡片深灰背景 */
+    --card-border: #2A2A2A;    /* 卡片邊界 */
+    --text: #F5F5F5;           /* 主文字白 */
+    --muted: #B0B0B0;          /* 副文字灰 */
+    --accent: #C6A98A;         /* 木頭色 */
+    --accent-light: #E8DCC8;   /* 奶灰木色（可選） */
+    --shadow: 0 6px 18px rgba(0,0,0,0.5);
+    --radius: 14px;
   }
+  
   
   
   
@@ -33,10 +26,10 @@
   body{
     margin:0;
     font-family: -apple-system, "BlinkMacSystemFont","Noto Sans TC","Helvetica Neue", Arial;
-    background: var(--cream);   /* 只用奶油白 */
-    color:#1a1a1a;
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 88px;
   }
   
   
@@ -203,8 +196,9 @@
   }
   
   .btn{
-    background:var(--card);
-    border:1px solid rgba(0,0,0,0.04);
+    background: #1F1F1F;
+    border: 1px solid #2F2F2F;
+    color: var(--text);
     padding:8px 12px;
     border-radius:999px;
     box-shadow: var(--shadow);
@@ -219,7 +213,8 @@
   
   .btn.primary{
     background: var(--accent);   /* 純綠 */
-    color:white;
+    color: #262626;
+    font-weight: 700;
     border:none;
   }
   
@@ -265,7 +260,9 @@
     padding:7px 8px;
     font-size:14px;
     outline:none;
-    background:#fffdfc;
+    background: #1A1A1A;
+    color: var(--text);
+    border: 1px solid #2A2A2A;
   }
   
   .field input:focus,
@@ -296,8 +293,9 @@
   .day-btn{
     padding:8px 12px;
     border-radius:999px;
-    background:rgba(255,255,255,0.9);
-    border:1px solid rgba(0,0,0,0.04);
+    background: #1a1a1a;
+    color: var(--muted);
+    border: 1px solid #2a2a2a;
     cursor:pointer;
     min-width:120px;
     text-align:center;
@@ -305,10 +303,10 @@
   }
   
   .day-btn.active{
-    background:linear-gradient(135deg,#f7e3df,#e4efea);
-    border: 1px solid rgba(201,123,132,0.35);
+    background: #252525;
+    border: 1px solid var(--accent);
+    color: var(--accent);
     box-shadow: var(--shadow);
-    color:var(--accent);
     font-weight:700;
   }
   
@@ -338,6 +336,7 @@
     border-radius: 16px;
     padding:10px 12px;
     margin-bottom:12px;
+    border: 1px solid var(--card-border);
     box-shadow: var(--shadow);
     border:1px solid rgba(255,255,255,0.9);
     display:flex;
@@ -382,8 +381,9 @@
     margin-top:8px;
     padding:8px 10px;
     border-radius:12px;
-    background:rgba(255,255,255,0.9);
-    border:1px dashed rgba(0,0,0,0.06);
+    background: #242424;
+    border: 1px dashed #444;
+    color: var(--muted);
     font-size:12px;
   }
   
@@ -437,6 +437,7 @@
     display:flex;
     justify-content:space-between;
     align-items:flex-start;
+    color: var(--text);
     gap:8px;
     margin-bottom:4px;
   }
@@ -600,5 +601,52 @@
       flex-direction:column;
       align-items:flex-start;
     }
+  }
+  
+  /* 在淺色背景區塊上，用比較深的字色 */
+
+/* Hero 整塊 + 內文文字 */
+.hero{
+    color: #2A2A2A;
+  }
+  .hero .trip-title{
+    color: #2A2A2A;        /* 標題更扎實一點 */
+  }
+  .hero .trip-sub{
+    color: #666666;        /* 副標用中灰 */
+  }
+  
+  /* 上方 tabs 裡的文字（淺底時要深一點） */
+  .app-nav{
+    color: #2A2A2A;
+  }
+  .nav-tab{
+    color: #555555;
+  }
+  .nav-tab.active{
+    color: #FFFFFF;        /* 目前的白字在木頭色底上是 OK 的，就維持 */
+  }
+  
+  /* 航班 / 住宿那種大塊白底卡片 */
+  .section-card{
+    color: #2A2A2A;
+  }
+  .section-card .section-header h2{
+    color: #2A2A2A;
+  }
+  .section-card .section-header p,
+  .section-card .section-hint{
+    color: #666666;
+  }
+  
+  /* 匯出 JSON 的 modal 也是白底 → 字改深灰 */
+  .modal{
+    color: #2A2A2A;
+  }
+  .modal .header h3{
+    color: #2A2A2A;
+  }
+  .modal textarea{
+    color: #2A2A2A;
   }
   
