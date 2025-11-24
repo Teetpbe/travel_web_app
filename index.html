@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>三日東京遊 — 手帳風 Timeline（可編輯 / 拖曳 / 匯出）</title>
+
+<!-- SortableJS for drag-and-drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<style>
+  :root{
+    --bg:#f5efe6; /* 米色手帳背景 */
+    --card:#fffdfa;
+    --accent:#6b5b95;
+    --muted:#6b6b6b;
+    --shadow: 0 6px 18px rgba(11,10,9,0.06);
+    --radius:14px;
+  }
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family: -apple-system, "BlinkMacSystemFont","Noto Sans TC","Helvetica Neue", Arial;
+    background: linear-gradient(180deg, var(--bg) 0%, #f7f2e8 100%);
+    color:#1a1a1a;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    padding-bottom:88px; /* for bottom bar */
+  }
+
+  /* Header (hero) */
+  .app {
+    max-width:900px;
+    margin:18px auto;
+    padding:18px;
+  }
+
+  .hero {
+    background: linear-gradient(90deg, rgba(107,91,149,0.12), rgba(235,224,241,0.08));
+    border-radius: var(--radius);
+    padding:16px;
+    display:flex;
+    gap:12px;
+    align-items:center;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(0,0,0,0.02);
+  }
+  .hero-left { flex:1; }
+  .trip-title { font-size:18px; font-weight:700; color: var(--accent); }
+  .trip-sub { font-size:13px; color:var(--muted); margin-top:4px; }
+  .today-bubble {
+    min-width:84px;
+    text-align:center;
+    background:linear-gradient(180deg, #fff, #fbf8f5);
+    border-radius:10px;
+    padding:10px;
+    box-shadow: 0 6px 14px rgba(107,91,149,0.06);
+    border:1px solid rgba(0,0,0,0.02);
+  }
+  .today-bubble .date { font-weight:700; font-size:14px; color:var(--accent); }
+  .today-bubble .temp { font-size:12px; color:var(--muted); margin-top:4px; }
+
+  /* Controls */
+  .controls {
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .btn {
+    background:var(--card);
+    border:1px solid rgba(0,0,0,0.06);
+    padding:8px 12px;
+    border-radius:10px;
+    box-shadow: var(--shadow);
+    cursor:pointer;
+    font-weight:600;
+  }
+  .btn.primary {
+    background: linear-gradient(180deg,#6b5b95,#5a4a7a);
+    color:white;
+    border: none;
+  }
+  .btn.ghost {
+    background:transparent;
+    border:1px dashed rgba(0,0,0,0.06);
+  }
+
+  /* Editor area */
+  .editor {
+    margin-top:16px;
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .field {
+    background:var(--card);
+    padding:10px;
+    border-radius:10px;
+    border:1px solid rgba(0,0,0,0.03);
+    box-shadow: var(--shadow);
+  }
+  .field input, .field select, .field textarea {
+    border-radius:8px;
+    border:1px solid rgba(0,0,0,0.06);
+    padding:8px;
+    font-size:14px;
+    width:220px;
+    outline:none;
+  }
+  .field textarea { width:100%; min-height:54px; resize:vertical; }
+
+  /* Days nav */
+  .days {
+    display:flex;
+    gap:8px;
+    margin-top:18px;
+    overflow:auto;
+    padding-bottom:6px;
+  }
+  .day-btn {
+    padding:8px 12px;
+    border-radius:10px;
+    background:transparent;
+    border:1px solid rgba(0,0,0,0.04);
+    cursor:pointer;
+    min-width:84px;
+    text-align:center;
+  }
+  .day-btn.active {
+    background:linear-gradient(180deg,#fff,#fbf8f5);
+    border: 1px solid rgba(107,91,149,0.08);
+    box-shadow: var(--shadow);
+    color:var(--accent);
+    font-weight:700;
+  }
+
+  /* Timeline container */
+  .timeline {
+    margin-top:16px;
+  }
+  .timeline .drop-hint {
+    color:var(--muted);
+    font-size:13px;
+    margin-bottom:6px;
+  }
+
+  /* Card */
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding:12px;
+    margin-bottom:12px;
+    box-shadow: var(--shadow);
+    border:1px solid rgba(0,0,0,0.02);
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    touch-action: pan-y;
+  }
+  .card .time {
+    width:72px;
+    font-weight:700;
+    color:var(--accent);
+    font-size:14px;
+  }
+  .card .body { flex:1; }
+  .card .title { font-weight:700; font-size:15px; margin-bottom:4px; }
+  .card .meta { color:var(--muted); font-size:13px; margin-bottom:8px; }
+  .card .actions { display:flex; gap:8px; margin-top:6px; flex-wrap:wrap; }
+  .icon {
+    width:40px;height:40px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    background: linear-gradient(180deg,#fff,#f7f3ef);
+    border:1px solid rgba(0,0,0,0.03);
+    font-size:18px;
+  }
+
+  /* Small text buttons */
+  .link-btn {
+    background:transparent;border:none;color:var(--accent);font-weight:700;
+    cursor:pointer;font-size:13px;padding:6px 8px;border-radius:8px;
+  }
+
+  /* bottom nav spacing */
+  .spacer { height:80px; }
+
+  /* Modal for details + export */
+  .modal-bg {
+    position:fixed; left:0; top:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.35);
+    display:none; align-items:center; justify-content:center;
+    z-index:90;
+  }
+  .modal {
+    width:92%;
+    max-width:760px;
+    background:white;
+    padding:16px;
+    border-radius:12px;
+    box-shadow: 0 20px 60px rgba(10,10,10,0.3);
+  }
+  .modal .header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .modal textarea { width:100%; min-height:260px; margin-top:12px; padding:12px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); font-family: monospace; font-size:13px; }
+
+  /* mobile niceties */
+  @media (max-width:520px){
+    .field input, .field select { width:150px; }
+    .card { padding:10px; }
+    .card .time { width:64px; font-size:13px; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="hero" role="banner">
+      <div class="hero-left">
+        <div class="trip-title">三日東京遊 — 手帳行程</div>
+        <div class="trip-sub">Notion 手帳風 • 可新增 / 刪除 / 拖曳排序 • 會自動儲存</div>
+
+        <div class="controls">
+          <button class="btn primary" id="addQuickBtn">＋ 新增空白活動</button>
+          <button class="btn" id="openExport">匯出（顯示 JSON）</button>
+          <button class="btn ghost" id="resetBtn">重置範例資料</button>
+        </div>
+      </div>
+
+      <div class="today-bubble" aria-hidden="true">
+        <div class="date" id="todayText">--</div>
+        <div class="temp" id="tempText">載入氣溫…</div>
+      </div>
+    </div>
+
+    <!-- editor short form -->
+    <div class="editor" aria-label="新增活動區">
+      <div class="field">
+        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">Day</label>
+        <select id="daySelect">
+          <option value="1">Day 1</option>
+          <option value="2">Day 2</option>
+          <option value="3">Day 3</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">時間</label>
+        <input id="timeInput" placeholder="09:00" />
+      </div>
+
+      <div class="field">
+        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">標題</label>
+        <input id="titleInput" placeholder="例如：淺草寺" />
+      </div>
+
+      <div class="field" style="flex:1; min-width:180px;">
+        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">備註 / 地點連結 (可選)</label>
+        <input id="detailInput" placeholder="簡短描述" />
+        <input id="mapInput" placeholder="Google Maps 連結（可選）" style="margin-top:8px;" />
+      </div>
+
+      <div style="display:flex; align-items:flex-end;">
+        <button class="btn primary" id="addBtn">新增</button>
+      </div>
+    </div>
+
+    <!-- days nav -->
+    <div class="days" id="daysNav" aria-label="日程切換">
+      <button class="day-btn active" data-day="1">Day 1 • 東京淺草</button>
+      <button class="day-btn" data-day="2">Day 2 • 原宿/涉谷</button>
+      <button class="day-btn" data-day="3">Day 3 • 築地/銀座</button>
+    </div>
+
+    <!-- timeline area -->
+    <div class="timeline">
+      <div class="drop-hint">按住整張卡片即可拖曳重新排序（手機友善）</div>
+      <div id="timelineList" aria-live="polite"></div>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <!-- Modal: details / export -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="header">
+        <h3 id="modalTitle">匯出 / 詳細</h3>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" id="copyBtn">複製到剪貼簿</button>
+          <button class="btn" id="closeModalBtn">關閉</button>
+        </div>
+      </div>
+      <div id="modalBody">
+        <textarea id="exportArea" readonly></textarea>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =========================
+   Data & Storage
+   ========================= */
+const STORAGE_KEY = "trip_timeline_schedule_v1";
+
+// sample three-day Tokyo itinerary
+const SAMPLE = {
+  meta: { title: "三日東京遊 (範例)", created: new Date().toISOString() },
+  days: {
+    1: [
+      { id: genId(), time:"09:00", title:"成田機場 → 東京市區 (Skyliner)", detail:"搭 Skyliner 至上野/日暮里，再轉車前往飯店。", map:"https://maps.app.goo.gl/Q3bNQxC9NYF" },
+      { id: genId(), time:"11:30", title:"淺草寺 & 仲見世商店街", detail:"拍照、吃人形燒、逛土產店。", map:"https://maps.app.goo.gl/P1Z3DvXHnBB" },
+      { id: genId(), time:"14:30", title:"晴空塔 (Skytree)", detail:"登高望遠＋購物", map:"https://maps.app.goo.gl/RTyH1cZyQh9" }
+    ],
+    2: [
+      { id: genId(), time:"10:00", title:"明治神宮", detail:"參拜＋森林步道", map:"https://maps.app.goo.gl/1C8YJwSgKqS" },
+      { id: genId(), time:"12:00", title:"原宿 竹下通", detail:"逛街、可麗餅", map:"https://maps.app.goo.gl/pcN3rBhxE7L" },
+      { id: genId(), time:"15:00", title:"涉谷十字路口", detail:"拍照、星巴克觀景", map:"https://maps.app.goo.gl/Xz8Ff6QeaP7" }
+    ],
+    3: [
+      { id: genId(), time:"09:30", title:"築地場外市場", detail:"海鮮早餐、生魚片", map:"https://maps.app.goo.gl/cQCxRy8xr9C" },
+      { id: genId(), time:"13:00", title:"銀座購物", detail:"UNIQLO、百貨逛街", map:"https://maps.app.goo.gl/D7fMczF9aRq" },
+      { id: genId(), time:"17:30", title:"台場夜景 & 自由女神像", detail:"海濱散步、夜景", map:"https://maps.app.goo.gl/2T8iTWZtJsV" }
+    ]
+  }
+};
+
+function genId(){
+  return "e_" + Math.random().toString(36).slice(2,9);
+}
+
+function saveToStorage(obj){
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+  } catch(e){ console.error("save fail", e); }
+}
+function loadFromStorage(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  } catch(e){ console.error("load fail", e); return null; }
+}
+
+/* =========================
+   Boot / UI init
+   ========================= */
+let schedule = loadFromStorage() || SAMPLE;
+let currentDay = 1;
+
+const timelineList = document.getElementById("timelineList");
+const daysNav = document.getElementById("daysNav");
+const dayButtons = daysNav.querySelectorAll(".day-btn");
+
+function setActiveDay(day){
+  currentDay = day;
+  dayButtons.forEach(b=>b.classList.toggle("active", b.dataset.day==String(day)));
+  renderTimeline();
+}
+dayButtons.forEach(b=>{
+  b.addEventListener("click", ()=> setActiveDay(Number(b.dataset.day)));
+});
+
+// render hero date
+document.getElementById("todayText").textContent =
+  new Date().toLocaleDateString("zh-TW", {year:"numeric", month:"short", day:"numeric"});
+
+// simple temp via open-meteo
+fetch("https://api.open-meteo.com/v1/forecast?latitude=35.68&longitude=139.69&current_weather=true")
+.then(r=>r.json()).then(d=>{
+  if(d && d.current_weather) document.getElementById("tempText").textContent = d.current_weather.temperature + "°C";
+}).catch(()=>{/* ignore */});
+
+/* =========================
+   Render timeline
+   ========================= */
+function renderTimeline(){
+  const list = schedule.days?.[currentDay] || [];
+  timelineList.innerHTML = "";
+  if(!list.length){
+    timelineList.innerHTML = `<div style="color:var(--muted); padding:12px; background:var(--card); border-radius:10px;">尚無活動，請用上方表單新增或點「新增空白活動」</div>`;
+    return initSortable(); // still init empty container
+  }
+
+  // create DOM for each event
+  list.forEach((ev, idx) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.id = ev.id;
+    card.innerHTML = `
+      <div class="icon" aria-hidden="true">📍</div>
+      <div class="body">
+        <div class="title">${escapeHtml(ev.title || "（未填）")}</div>
+        <div class="meta">${escapeHtml(ev.time || "")} • ${escapeHtml(ev.detail || "")}</div>
+        <div class="actions">
+          ${ev.map ? `<a href="${ev.map}" target="_blank" class="link-btn">開地圖</a>` : ""}
+          <button class="link-btn" data-action="edit">編輯</button>
+          <button class="link-btn" data-action="delete">刪除</button>
+        </div>
+      </div>
+    `;
+    // allow long-press / touch drag by Sortable (no handle)
+    timelineList.appendChild(card);
+  });
+
+  initCardButtons();
+  initSortable();
+}
+
+/* escape to prevent accidental HTML injection */
+function escapeHtml(s){ return String(s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"','&quot;'); }
+
+/* =========================
+   Sortable (drag & drop)
+   ========================= */
+let sortableInstance = null;
+function initSortable(){
+  if(sortableInstance) {
+    try{ sortableInstance.destroy(); }catch(e){}
+    sortableInstance = null;
+  }
+
+  // Create Sortable on timelineList; the entire card is draggable (no handle)
+  sortableInstance = new Sortable(timelineList, {
+    animation: 160,
+    ghostClass: 'ghost',
+    fallbackOnBody: true,
+    swapThreshold: 0.65,
+    onEnd: function(evt){
+      // update order in schedule.days[currentDay]
+      const ids = Array.from(timelineList.children).map(c => c.dataset.id);
+      const dayArr = schedule.days[currentDay];
+      const newArr = ids.map(id => dayArr.find(x=>x.id===id)).filter(Boolean);
+      schedule.days[currentDay] = newArr;
+      saveToStorage(schedule);
+      // re-render to ensure consistent DOM (but avoid infinite loop)
+      renderTimeline();
+    }
+  });
+}
+
+/* =========================
+   Card action buttons (edit/delete)
+   ========================= */
+function initCardButtons(){
+  timelineList.querySelectorAll("[data-action]").forEach(btn=>{
+    btn.onclick = function(e){
+      const action = this.dataset.action;
+      const card = this.closest(".card");
+      const id = card?.dataset.id;
+      if(!id) return;
+      if(action === "delete"){
+        // delete item
+        const arr = schedule.days[currentDay];
+        schedule.days[currentDay] = arr.filter(x=>x.id !== id);
+        saveToStorage(schedule);
+        renderTimeline();
+      } else if(action === "edit"){
+        // fill form with data
+        const ev = schedule.days[currentDay].find(x=>x.id===id);
+        if(!ev) return;
+        document.getElementById("daySelect").value = String(currentDay);
+        document.getElementById("timeInput").value = ev.time || "";
+        document.getElementById("titleInput").value = ev.title || "";
+        document.getElementById("detailInput").value = ev.detail || "";
+        document.getElementById("mapInput").value = ev.map || "";
+        // when user clicks 新增, detect existing id to update (we will store it temporarily)
+        document.getElementById("addBtn").dataset.editId = id;
+        scrollToTop();
+      }
+    };
+  });
+}
+
+/* =========================
+   Add / Quick add / Reset
+   ========================= */
+document.getElementById("addBtn").addEventListener("click", function(){
+  const day = Number(document.getElementById("daySelect").value);
+  const time = document.getElementById("timeInput").value.trim();
+  const title = document.getElementById("titleInput").value.trim() || "（無標題）";
+  const detail = document.getElementById("detailInput").value.trim();
+  const map = document.getElementById("mapInput").value.trim();
+
+  const editId = this.dataset.editId;
+  if(editId){
+    // update existing
+    const arr = schedule.days[day] || [];
+    const idx = arr.findIndex(x=>x.id===editId);
+    if(idx>=0){
+      arr[idx] = { ...arr[idx], time, title, detail, map };
+    }
+    delete this.dataset.editId;
+  } else {
+    const ev = { id: genId(), time, title, detail, map };
+    schedule.days[day] = schedule.days[day] || [];
+    schedule.days[day].push(ev);
+  }
+  // clear form
+  document.getElementById("timeInput").value = "";
+  document.getElementById("titleInput").value = "";
+  document.getElementById("detailInput").value = "";
+  document.getElementById("mapInput").value = "";
+  saveToStorage(schedule);
+  setActiveDay(day);
+});
+
+document.getElementById("addQuickBtn").addEventListener("click", ()=>{
+  const ev = { id: genId(), time:"09:00", title:"新活動", detail:"可編輯內容", map:"" };
+  schedule.days[currentDay] = schedule.days[currentDay] || [];
+  schedule.days[currentDay].push(ev);
+  saveToStorage(schedule);
+  renderTimeline();
+});
+
+// reset to sample
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  if(confirm("確定要重置為三日範例資料嗎？目前內容會被覆蓋。")) {
+    schedule = JSON.parse(JSON.stringify(SAMPLE));
+    saveToStorage(schedule);
+    setActiveDay(1);
+  }
+});
+
+/* =========================
+   Export / Modal
+   ========================= */
+const modalBg = document.getElementById("modalBg");
+const exportArea = document.getElementById("exportArea");
+document.getElementById("openExport").addEventListener("click", ()=>{
+  openExportModal();
+});
+document.getElementById("copyBtn").addEventListener("click", ()=>{
+  const text = exportArea.value;
+  navigator.clipboard?.writeText(text).then(()=>{
+    alert("已複製到剪貼簿");
+  }).catch(()=>{ alert("複製失敗，請手動選取複製。"); });
+});
+document.getElementById("closeModalBtn").addEventListener("click", closeModal);
+modalBg.addEventListener("click", (e)=>{ if(e.target===modalBg) closeModal(); });
+
+function openExportModal(){
+  const payload = JSON.stringify(schedule, null, 2);
+  exportArea.value = payload;
+  document.getElementById("modalTitle").textContent = "匯出 JSON（可複製）";
+  modalBg.style.display = "flex";
+}
+function closeModal(){ modalBg.style.display = "none"; }
+
+/* =========================
+   Utility / helpers
+   ========================= */
+function scrollToTop(){
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* initial load */
+setActiveDay(1);
+renderTimeline();
+
+/* ensure schedule saved on change (in case user manipulates multiple windows) */
+window.addEventListener("beforeunload", ()=> saveToStorage(schedule));
+
+/* end of script */
+</script>
+</body>
+</html>
